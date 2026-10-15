@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Tarik Tambang Ekosistem - Voxel Battle 3D</title>
+  <meta name="description" content="Game battle tarik tambang 3D bergaya voxel dengan materi IPAS Kelas 5 SD Bab 3: Harmoni dalam Ekosistem. Bersaing cepat menjawab soal biotik, abiotik, dan rantai makanan!">
+
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Three.js 3D Library (Local + CDN fallback) -->
+  <script src="lib/three.min.js"></script>
+  <script>
+    if (typeof THREE === 'undefined') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+    }
+  </script>
+</head>
+<body>
+  <div id="gameApp">
+    <!-- 3D VIEWPORT CONTAINER -->
+    <div id="worldCanvasContainer"></div>
+
+    <!-- TOP HUD & TUG-OF-WAR BALANCE BAR -->
+    <header id="topHUD">
+      <div class="hud-upper-row">
+        <!-- Team A Pill (Steve / Left) -->
+        <div class="hud-team-pill team-a">
+          <div class="team-avatar-badge">⛏️</div>
+          <div class="team-info">
+            <h2 id="hudTeamAName">Tim Steve</h2>
+            <div class="team-pull-counter" id="hudTeamAScore">0 Tarikan</div>
+          </div>
+        </div>
+
+        <!-- Center Match Control -->
+        <div class="hud-center-controls">
+          <span class="timer-pill" id="timerDisplay">🎯 Target: 6 Tarikan</span>
+          <button class="hud-action-btn" id="btnMusic" title="Nyalakan/Matikan Musik BGM">🎵 BGM: ON</button>
+          <button class="hud-action-btn" id="btnMute" title="Mute Suara">🔊 Suara: ON</button>
+          <button class="hud-action-btn" id="btnPause" title="Jeda atau lanjutkan permainan (Escape)">⏸️ Jeda</button>
+          <button class="hud-action-btn" id="btnOpenSettings" title="Pengaturan Tim & Permainan">⚙️ Ganti Tim</button>
+        </div>
+
+        <!-- Team B Pill (Alex / Right) -->
+        <div class="hud-team-pill team-b">
+          <div class="team-info" style="text-align: right;">
+            <h2 id="hudTeamBName">Tim Alex</h2>
+            <div class="team-pull-counter" id="hudTeamBScore">0 Tarikan</div>
+          </div>
+          <div class="team-avatar-badge">🏹</div>
+        </div>
+      </div>
+
+      <!-- TUG-OF-WAR BALANCE INDICATOR BAR -->
+      <div class="tug-meter-wrapper" title="Posisi Tarikan Tali">
+        <div class="meter-track">
+          <div class="meter-center-mark"></div>
+          <div class="meter-flag" id="tugFlag">
+            <div class="meter-flag-head">🚩</div>
+            <div class="meter-flag-pin"></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- COUNTDOWN / STATUS BANNER -->
+    <div id="statusBanner" class="hidden">PERSIAPAN... 3</div>
+
+    <!-- BOTTOM SPLIT-SCREEN PLAY ZONE (CONCURRENT DUAL QUIZ) -->
+    <main id="bottomPlayZone">
+      <!-- LEFT TEAM QUIZ PANEL (TEAM A) -->
+      <section class="team-quiz-panel panel-team-a" id="panelTeamA" aria-label="Panel Soal Tim Kiri">
+        <div class="panel-header">
+          <span class="team-badge-tag" id="titleTeamA">Tim Steve</span>
+          <span class="category-tag" id="categoryTeamA">📚 Memuat Soal...</span>
+          <span class="streak-tag" id="streakTeamA">🔥 Siap!</span>
+        </div>
+
+        <div class="question-card">
+          <p class="question-text" id="textTeamA">Pertanyaan akan muncul di sini saat pertandingan dimulai...</p>
+        </div>
+
+        <!-- 4 Answer Buttons (A, B, C, D) -->
+        <div class="options-grid" id="optionsContainerA"></div>
+
+        <!-- Cooldown Overlay for Wrong Answer -->
+        <div class="cooldown-overlay hidden" id="cooldownOverlayA">
+          <span>⏳ TUNGGU 1.5s...</span>
+        </div>
+      </section>
+
+      <!-- RIGHT TEAM QUIZ PANEL (TEAM B) -->
+      <section class="team-quiz-panel panel-team-b" id="panelTeamB" aria-label="Panel Soal Tim Kanan">
+        <div class="panel-header">
+          <span class="team-badge-tag" id="titleTeamB">Tim Alex</span>
+          <span class="category-tag" id="categoryTeamB">📚 Memuat Soal...</span>
+          <span class="streak-tag" id="streakTeamB">🔥 Siap!</span>
+        </div>
+
+        <div class="question-card">
+          <p class="question-text" id="textTeamB">Pertanyaan akan muncul di sini saat pertandingan dimulai...</p>
+        </div>
+
+        <!-- 4 Answer Buttons (A, B, C, D) -->
+        <div class="options-grid" id="optionsContainerB"></div>
+
+        <!-- Cooldown Overlay for Wrong Answer -->
+        <div class="cooldown-overlay hidden" id="cooldownOverlayB">
+          <span>⏳ TUNGGU 1.5s...</span>
+        </div>
+      </section>
+    </main>
+
+    <!-- MODAL: PENGATURAN PERTANDINGAN & NAMA TIM -->
+    <div class="modal-backdrop" id="modalSetup">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title">⚔️ BATTLE TARIK TAMBANG EKOSISTEM ⚔️</h1>
+          <p class="modal-subtitle">IPAS Kelas V SD/MI - Harmoni dalam Ekosistem</p>
+        </div>
+
+        <div class="form-group">
+          <label for="inputTeamAName">Nama Tim Kiri (Steve Side):</label>
+          <input type="text" id="inputTeamAName" class="mc-input" value="Tim Steve (Biotik)" maxlength="20">
+        </div>
+
+        <div class="form-group">
+          <label for="inputTeamBName">Nama Tim Kanan (Alex Side):</label>
+          <input type="text" id="inputTeamBName" class="mc-input" value="Tim Alex (Abiotik)" maxlength="20">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label for="selectTargetPulls">Target Tarikan Menang:</label>
+            <select id="selectTargetPulls" class="mc-select">
+              <option value="5">5 Tarikan (Cepat)</option>
+              <option value="6" selected>6 Tarikan (Standar)</option>
+              <option value="8">8 Tarikan (Sengit)</option>
+              <option value="10">10 Tarikan (Maraton)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="selectTimeLimit">Batas Waktu:</label>
+            <select id="selectTimeLimit" class="mc-select">
+              <option value="0" selected>Tanpa Batas (Sampai Menang)</option>
+              <option value="60">60 Detik (Sprint Cepat)</option>
+              <option value="90">90 Detik</option>
+              <option value="120">120 Detik</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="background: #e9ecef; border: 2px dashed #999; padding: 10px; border-radius: 4px; font-size: 13px; line-height: 1.4;">
+          <strong>💡 Petunjuk Bermain Bersama:</strong>
+          <ul style="margin-left: 18px; margin-top: 4px;">
+            <li>Kedua tim bermain <strong>secara bersamaan tanpa giliran</strong> (cepet-cepetan!).</li>
+            <li>Setiap jawaban benar memberi <strong>satu tarikan</strong> kepada tim. Masing-masing tim terdiri dari lima karakter.</li>
+            <li>Mode waktu menentukan pemenang dari jumlah jawaban benar; mode tanpa batas berakhir saat tali mencapai target.</li>
+            <li><strong>Tombol Keyboard:</strong> Tim Kiri [1, 2, 3, 4] atau [Q, W, E, R]. Tim Kanan [7, 8, 9, 0] atau [U, I, O, P].</li>
+            <li>Tekan <strong>Escape</strong> atau tombol Jeda untuk menghentikan sementara pertandingan.</li>
+            <li>Dapat juga diklik/disentuh langsung di layar sentuh secara bersamaan!</li>
+          </ul>
+        </div>
+
+        <div class="modal-actions">
+          <button id="btnStartGame" class="mc-btn mc-btn-primary">MULAI TARIK TAMBANG! 🚀</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: KEMENANGAN (VICTORY BANNER) -->
+    <div class="modal-backdrop hidden" id="modalVictory">
+      <div class="modal-content victory-card">
+        <div class="trophy-icon">🏆</div>
+        <h2 class="victory-title" id="victoryTitle">TIM STEVE MENANG!</h2>
+        <p class="modal-subtitle" id="victorySubtitle">Kombinasi kecepatan dan ketepatan menjawab berhasil menarik tali melintasi garis kemenangan!</p>
+
+        <div class="stats-grid">
+          <div class="stat-box">
+            <span id="statWinnerLabel">Jawaban benar pemenang</span>
+            <strong id="statWinnerPulls">6 tarikan</strong>
+          </div>
+          <div class="stat-box">
+            <span>Total Soal Dijawab</span>
+            <strong id="statTotalPulls">14 soal</strong>
+          </div>
+          <div class="stat-box">
+            <span>Akurasi Jawaban</span>
+            <strong id="statAccuracy">85%</strong>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button id="btnRematch" class="mc-btn mc-btn-primary">⚔️ TANDING ULANG</button>
+          <button id="btnShowReview" class="mc-btn">📖 LIHAT PEMBAHASAN SOAL</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: PEMBAHASAN MATERI IPAS -->
+    <div class="modal-backdrop hidden" id="modalReview">
+      <div class="modal-content modal-review-content">
+        <div class="modal-header">
+          <h2 class="modal-title">📖 PEMBAHASAN MATERI IPAS KELAS V</h2>
+          <p class="modal-subtitle">Harmoni dalam Ekosistem - Evaluasi & Penguatan Pemahaman</p>
+        </div>
+
+        <div class="review-list-container" id="reviewListContainer"></div>
+
+        <div class="modal-actions">
+          <button id="btnCloseReview" class="mc-btn mc-btn-primary">KEMBALI</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION SCRIPTS -->
+  <script src="js/questions.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/textures.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/game.js"></script>
+
+  <script>
+    // Initialize 3D World and connect to Game controller
+    window.addEventListener('DOMContentLoaded', () => {
+      const container = document.getElementById('worldCanvasContainer');
+      const world = new MinecraftWorld(container);
+      game.setWorld(world);
+    });
+  </script>
+</body>
+</html>
